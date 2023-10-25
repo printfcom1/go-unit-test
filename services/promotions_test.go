@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/go-unit-test/repositories"
@@ -38,6 +39,24 @@ func TestPromotionCalculateDiscount(t *testing.T) {
 		})
 	}
 
-	//Arrage
+	t.Run("purchase amount zero", func(t *testing.T) {
+		promoRepo := repositories.NewPromotionRipositoryMock()
+		promoRepo.On("GetPromotion").Return(repositories.Promotion{ID: "1", PurchaseMin: 100, DiscountPercent: 20}, nil)
+		promoService := services.NewPromotionService(promoRepo)
 
+		_, err := promoService.CalculateDiscount(0)
+
+		assert.ErrorIs(t, err, services.ErrZeroAmount)
+		promoRepo.AssertNotCalled(t, "GetPromotion")
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		promoRepo := repositories.NewPromotionRipositoryMock()
+		promoRepo.On("GetPromotion").Return(repositories.Promotion{}, errors.New("error"))
+		promoService := services.NewPromotionService(promoRepo)
+
+		_, err := promoService.CalculateDiscount(100)
+
+		assert.ErrorIs(t, err, services.ErrRepository)
+	})
 }
